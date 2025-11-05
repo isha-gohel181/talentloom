@@ -31,7 +31,7 @@ function generateEmailLinkTemplate(Token) {
                 </html>`;
 }
 
-function generateEmailTemplate(verificationCode, companyName = "GNCIPL", logoUrl = "") {
+function generateEmailTemplate(verificationCode, companyName = "talentloom", logoUrl = "") {
     return `<!DOCTYPE html>
   <html lang="en">
   <head>
