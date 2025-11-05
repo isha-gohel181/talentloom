@@ -34,7 +34,7 @@ app.use(cors({
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "✅ GNCIPL_BENE Backend is Running Successfully!",
+    message: "✅ talentloom Backend is Running Successfully!",
     version: "1.0.0",
     author: "Vivek Dubey (backend)",
     timestamp: new Date().toISOString(),
