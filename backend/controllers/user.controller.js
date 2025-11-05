@@ -99,9 +99,8 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
 
         }
 
-
-        // const { accessToken, newRefreshToken } = await generateAccessAndRefreshToken(user._id)
-        cookieToken(user, res)
+        // Return the response from cookieToken
+        return cookieToken(user, res)
 
     } catch (error) {
         return next(new ErrorHandler(error?.message || "Invalid Refresh Token", 401))

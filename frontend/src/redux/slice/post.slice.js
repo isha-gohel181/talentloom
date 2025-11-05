@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../api/axios.config';
+import api from '../../api/axiosInstance';
 
 // Async thunks for all post operations
 export const createPost = createAsyncThunk(
@@ -79,31 +79,62 @@ export const fetchPostById = createAsyncThunk(
   }
 );
 
-export const upvotePost = createAsyncThunk(
-  'posts/upvotePost',
-  async (postId, { rejectWithValue }) => {
+export const votePost = createAsyncThunk(
+  'posts/votePost',
+  async ({ postId, vote }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/v1/posts/${postId}/upvote`);
+      const endpoint = vote === 1 ? 'upvote' : 'downvote';
+      const response = await api.post(`/api/v1/posts/${postId}/${endpoint}`);
       return { postId, ...response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to upvote post'
+        error.response?.data?.message ||
+        `Failed to ${vote === 1 ? 'upvote' : 'downvote'} post`
       );
     }
   }
 );
 
-export const downvotePost = createAsyncThunk(
-  'posts/downvotePost',
-  async (postId, { rejectWithValue }) => {
+export const acceptReply = createAsyncThunk(
+  'posts/acceptReply',
+  async ({ postId, replyId }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/v1/posts/${postId}/downvote`);
+      const response = await api.patch(`/api/v1/posts/${postId}/accept-reply`, { replyId });
       return { postId, ...response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to downvote post'
+        error.response?.data?.message ||
+        'Failed to accept reply'
+      );
+    }
+  }
+);
+
+export const getPostById = createAsyncThunk(
+  'posts/getPostById',
+  async (postId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/api/v1/posts/${postId}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+        'Failed to fetch post'
+      );
+    }
+  }
+);
+
+export const getRepliesByPostId = createAsyncThunk(
+  'posts/getRepliesByPostId',
+  async (postId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/api/v1/posts/${postId}/replies`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+        'Failed to fetch replies'
       );
     }
   }
@@ -352,15 +383,15 @@ const postSlice = createSlice({
         state.error.currentPost = action.payload;
       })
       
-      // Upvote Post
-      .addCase(upvotePost.pending, (state) => {
+      // Vote Post (combined upvote/downvote)
+      .addCase(votePost.pending, (state) => {
         state.loading.voting = true;
         state.error.voting = null;
       })
-      .addCase(upvotePost.fulfilled, (state, action) => {
+      .addCase(votePost.fulfilled, (state, action) => {
         state.loading.voting = false;
         const { postId, upvotes, downvotes, voteScore, message } = action.payload;
-        
+
         // Update in posts list
         const postIndex = state.posts.findIndex(post => post._id === postId);
         if (postIndex !== -1) {
@@ -368,50 +399,84 @@ const postSlice = createSlice({
           state.posts[postIndex].downvotes = downvotes;
           state.posts[postIndex].voteScore = voteScore;
         }
-        
+
         // Update in current post
         if (state.currentPost && state.currentPost._id === postId) {
           state.currentPost.upvotes = upvotes;
           state.currentPost.downvotes = downvotes;
           state.currentPost.voteScore = voteScore;
         }
-        
+
         state.message = message;
       })
-      .addCase(upvotePost.rejected, (state, action) => {
+      .addCase(votePost.rejected, (state, action) => {
         state.loading.voting = false;
         state.error.voting = action.payload;
       })
-      
-      // Downvote Post
-      .addCase(downvotePost.pending, (state) => {
-        state.loading.voting = true;
-        state.error.voting = null;
+
+      // Accept Reply
+      .addCase(acceptReply.pending, (state) => {
+        state.loading.updating = true;
+        state.error.updating = null;
       })
-      .addCase(downvotePost.fulfilled, (state, action) => {
-        state.loading.voting = false;
-        const { postId, upvotes, downvotes, voteScore, message } = action.payload;
-        
+      .addCase(acceptReply.fulfilled, (state, action) => {
+        state.loading.updating = false;
+        const { postId, post, message } = action.payload;
+
         // Update in posts list
-        const postIndex = state.posts.findIndex(post => post._id === postId);
+        const postIndex = state.posts.findIndex(p => p._id === postId);
         if (postIndex !== -1) {
-          state.posts[postIndex].upvotes = upvotes;
-          state.posts[postIndex].downvotes = downvotes;
-          state.posts[postIndex].voteScore = voteScore;
+          state.posts[postIndex].isAnswered = post.isAnswered;
+          state.posts[postIndex].answeredBy = post.answeredBy;
+          state.posts[postIndex].answeredAt = post.answeredAt;
         }
-        
+
         // Update in current post
         if (state.currentPost && state.currentPost._id === postId) {
-          state.currentPost.upvotes = upvotes;
-          state.currentPost.downvotes = downvotes;
-          state.currentPost.voteScore = voteScore;
+          state.currentPost.isAnswered = post.isAnswered;
+          state.currentPost.answeredBy = post.answeredBy;
+          state.currentPost.answeredAt = post.answeredAt;
         }
-        
+
         state.message = message;
       })
-      .addCase(downvotePost.rejected, (state, action) => {
-        state.loading.voting = false;
-        state.error.voting = action.payload;
+      .addCase(acceptReply.rejected, (state, action) => {
+        state.loading.updating = false;
+        state.error.updating = action.payload;
+      })
+
+      // Get Post By ID (alias for fetchPostById)
+      .addCase(getPostById.pending, (state) => {
+        state.loading.currentPost = true;
+        state.error.currentPost = null;
+      })
+      .addCase(getPostById.fulfilled, (state, action) => {
+        state.loading.currentPost = false;
+        state.currentPost = action.payload.post;
+        // Cache the post for quick access
+        state.cache[action.payload.post._id] = action.payload.post;
+      })
+      .addCase(getPostById.rejected, (state, action) => {
+        state.loading.currentPost = false;
+        state.error.currentPost = action.payload;
+      })
+
+      // Get Replies By Post ID
+      .addCase(getRepliesByPostId.pending, (state) => {
+        // We can use existing loading state or add a new one
+        state.loading.currentPost = true;
+        state.error.currentPost = null;
+      })
+      .addCase(getRepliesByPostId.fulfilled, (state, action) => {
+        state.loading.currentPost = false;
+        // Update current post with replies if it exists
+        if (state.currentPost) {
+          state.currentPost.replies = action.payload.replies;
+        }
+      })
+      .addCase(getRepliesByPostId.rejected, (state, action) => {
+        state.loading.currentPost = false;
+        state.error.currentPost = action.payload;
       })
       
       // Mark Post as Answered

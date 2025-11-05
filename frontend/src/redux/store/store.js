@@ -6,7 +6,7 @@ import replyReducer from '../slice/reply.slice';
 export const store = configureStore({
   reducer: {
     user: userReducer,
-    post: postReducer,
+    posts: postReducer,
     reply: replyReducer,
   },
   middleware: (getDefaultMiddleware) =>

@@ -5,6 +5,7 @@ import {
     registerUser,
     loginUser,
     logoutUser,
+    refreshAccessToken,
     sendOtpToUser,
     verifyOtpForUser,
     sendResetPasswordLinkToUser,
@@ -25,6 +26,7 @@ const router = express.Router()
 // *Register and login routes
 router.route("/register").post(registerUser)
 router.route("/login").post(loginUser)
+router.route("/refresh-token").post(refreshAccessToken)
 
 // *OTP routes
 router.route("/send-otp").get(verifyJWT, sendOtpToUser)
@@ -36,6 +38,7 @@ router.route("/password/forgot-password/:token").post(resetPassword)
 
 // *Authenticated user routes
 router.route("/password/update-password").put(verifyJWT, changeCurrentPassword)
+router.route("/me").get(verifyJWT, getLoggedInUserInfo)
 router.route("/dashboard").get(verifyJWT, getLoggedInUserInfo)
 router.route("/update-profile").put(verifyJWT, updateUserProfile)
 router.route("/update-avatar").put(verifyJWT, upload.single("avatar"), updateUserAvatar)

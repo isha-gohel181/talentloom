@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { selectIsAuthenticated } from './store/slices/userSlice';
+import { selectIsAuthenticated } from './redux/slice/user.slice';
 import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import PostDetailPage from './pages/PostDetailPage';
 import LoginPage from './pages/LoginPage';
@@ -24,13 +25,13 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
         <Navbar />
-        <main>
+        <main className="flex-1">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/posts/:id" element={<PostDetailPage />} />
+            <Route path="/post/:postId" element={<PostDetailPage />} />
             
             {/* Auth Routes - only accessible when not logged in */}
             <Route 
@@ -64,6 +65,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
+        <Footer />
       </div>
     </Router>
   );

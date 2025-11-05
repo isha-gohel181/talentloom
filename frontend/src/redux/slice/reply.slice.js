@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../api/axios.config';
+import api from '../../api/axiosInstance';
 
 // Async thunks for all reply operations
 export const createReply = createAsyncThunk(
@@ -35,61 +35,17 @@ export const fetchRepliesByPost = createAsyncThunk(
   }
 );
 
-export const upvoteReply = createAsyncThunk(
-  'replies/upvoteReply',
-  async (replyId, { rejectWithValue }) => {
+export const voteReply = createAsyncThunk(
+  'replies/voteReply',
+  async ({ replyId, vote }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/v1/replies/${replyId}/upvote`);
+      const endpoint = vote === 1 ? 'upvote' : 'downvote';
+      const response = await api.post(`/api/v1/replies/${replyId}/${endpoint}`);
       return { replyId, ...response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to upvote reply'
-      );
-    }
-  }
-);
-
-export const downvoteReply = createAsyncThunk(
-  'replies/downvoteReply',
-  async (replyId, { rejectWithValue }) => {
-    try {
-      const response = await api.post(`/api/v1/replies/${replyId}/downvote`);
-      return { replyId, ...response.data };
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to downvote reply'
-      );
-    }
-  }
-);
-
-export const markReplyAsAccepted = createAsyncThunk(
-  'replies/markAsAccepted',
-  async (replyId, { rejectWithValue }) => {
-    try {
-      const response = await api.patch(`/api/v1/replies/${replyId}/accept`);
-      return { replyId, ...response.data };
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to mark reply as accepted'
-      );
-    }
-  }
-);
-
-export const updateReply = createAsyncThunk(
-  'replies/updateReply',
-  async ({ replyId, content }, { rejectWithValue }) => {
-    try {
-      const response = await api.put(`/api/v1/replies/${replyId}`, { content });
-      return { replyId, ...response.data };
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 
-        'Failed to update reply'
+        error.response?.data?.message ||
+        `Failed to ${vote === 1 ? 'upvote' : 'downvote'} reply`
       );
     }
   }
@@ -103,7 +59,7 @@ export const deleteReply = createAsyncThunk(
       return { replyId, ...response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         'Failed to delete reply'
       );
     }
@@ -420,206 +376,6 @@ const replySlice = createSlice({
         state.error.fetching = action.payload;
       })
       
-      // Upvote Reply
-      .addCase(upvoteReply.pending, (state) => {
-        state.loading.voting = true;
-        state.error.voting = null;
-      })
-      .addCase(upvoteReply.fulfilled, (state, action) => {
-        state.loading.voting = false;
-        const { replyId, upvotes, downvotes, voteScore, message } = action.payload;
-        
-        // Update in cache
-        if (state.cache[replyId]) {
-          state.cache[replyId].upvotes = upvotes;
-          state.cache[replyId].downvotes = downvotes;
-          state.cache[replyId].voteScore = voteScore;
-        }
-
-        // Update in all locations
-        const updateVotesInReplies = (replies) => {
-          for (let reply of replies) {
-            if (reply._id === replyId) {
-              reply.upvotes = upvotes;
-              reply.downvotes = downvotes;
-              reply.voteScore = voteScore;
-              return true;
-            }
-            if (reply.replies && reply.replies.length > 0) {
-              if (updateVotesInReplies(reply.replies)) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        Object.values(state.repliesByPost).forEach(replies => {
-          updateVotesInReplies(replies);
-        });
-
-        // Update in userReplies
-        const userReplyIndex = state.userReplies.findIndex(reply => reply._id === replyId);
-        if (userReplyIndex !== -1) {
-          state.userReplies[userReplyIndex].upvotes = upvotes;
-          state.userReplies[userReplyIndex].downvotes = downvotes;
-          state.userReplies[userReplyIndex].voteScore = voteScore;
-        }
-
-        state.message = message;
-      })
-      .addCase(upvoteReply.rejected, (state, action) => {
-        state.loading.voting = false;
-        state.error.voting = action.payload;
-      })
-      
-      // Downvote Reply
-      .addCase(downvoteReply.pending, (state) => {
-        state.loading.voting = true;
-        state.error.voting = null;
-      })
-      .addCase(downvoteReply.fulfilled, (state, action) => {
-        state.loading.voting = false;
-        const { replyId, upvotes, downvotes, voteScore, message } = action.payload;
-        
-        // Update in cache
-        if (state.cache[replyId]) {
-          state.cache[replyId].upvotes = upvotes;
-          state.cache[replyId].downvotes = downvotes;
-          state.cache[replyId].voteScore = voteScore;
-        }
-
-        // Update in all locations
-        const updateVotesInReplies = (replies) => {
-          for (let reply of replies) {
-            if (reply._id === replyId) {
-              reply.upvotes = upvotes;
-              reply.downvotes = downvotes;
-              reply.voteScore = voteScore;
-              return true;
-            }
-            if (reply.replies && reply.replies.length > 0) {
-              if (updateVotesInReplies(reply.replies)) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        Object.values(state.repliesByPost).forEach(replies => {
-          updateVotesInReplies(replies);
-        });
-
-        // Update in userReplies
-        const userReplyIndex = state.userReplies.findIndex(reply => reply._id === replyId);
-        if (userReplyIndex !== -1) {
-          state.userReplies[userReplyIndex].upvotes = upvotes;
-          state.userReplies[userReplyIndex].downvotes = downvotes;
-          state.userReplies[userReplyIndex].voteScore = voteScore;
-        }
-
-        state.message = message;
-      })
-      .addCase(downvoteReply.rejected, (state, action) => {
-        state.loading.voting = false;
-        state.error.voting = action.payload;
-      })
-      
-      // Mark Reply as Accepted
-      .addCase(markReplyAsAccepted.pending, (state) => {
-        state.loading.updating = true;
-        state.error.updating = null;
-      })
-      .addCase(markReplyAsAccepted.fulfilled, (state, action) => {
-        state.loading.updating = false;
-        const { replyId, reply, message } = action.payload;
-        
-        // Update in cache
-        if (state.cache[replyId]) {
-          state.cache[replyId].isAcceptedAnswer = true;
-        }
-
-        // Update in all locations
-        const updateAcceptedInReplies = (replies) => {
-          for (let r of replies) {
-            if (r._id === replyId) {
-              r.isAcceptedAnswer = true;
-              return true;
-            }
-            if (r.replies && r.replies.length > 0) {
-              if (updateAcceptedInReplies(r.replies)) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        Object.values(state.repliesByPost).forEach(replies => {
-          updateAcceptedInReplies(replies);
-        });
-
-        // Update in userReplies
-        const userReplyIndex = state.userReplies.findIndex(r => r._id === replyId);
-        if (userReplyIndex !== -1) {
-          state.userReplies[userReplyIndex].isAcceptedAnswer = true;
-        }
-
-        state.message = message;
-      })
-      .addCase(markReplyAsAccepted.rejected, (state, action) => {
-        state.loading.updating = false;
-        state.error.updating = action.payload;
-      })
-      
-      // Update Reply
-      .addCase(updateReply.pending, (state) => {
-        state.loading.updating = true;
-        state.error.updating = null;
-      })
-      .addCase(updateReply.fulfilled, (state, action) => {
-        state.loading.updating = false;
-        const { replyId, reply, message } = action.payload;
-        
-        // Update in cache
-        if (state.cache[replyId]) {
-          state.cache[replyId] = { ...state.cache[replyId], ...reply };
-        }
-
-        // Update in all locations
-        const updateContentInReplies = (replies) => {
-          for (let r of replies) {
-            if (r._id === replyId) {
-              Object.assign(r, reply);
-              return true;
-            }
-            if (r.replies && r.replies.length > 0) {
-              if (updateContentInReplies(r.replies)) {
-                return true;
-              }
-            }
-          }
-          return false;
-        };
-
-        Object.values(state.repliesByPost).forEach(replies => {
-          updateContentInReplies(replies);
-        });
-
-        // Update in userReplies
-        const userReplyIndex = state.userReplies.findIndex(r => r._id === replyId);
-        if (userReplyIndex !== -1) {
-          state.userReplies[userReplyIndex] = { ...state.userReplies[userReplyIndex], ...reply };
-        }
-
-        state.message = message;
-      })
-      .addCase(updateReply.rejected, (state, action) => {
-        state.loading.updating = false;
-        state.error.updating = action.payload;
-      })
-      
       // Delete Reply
       .addCase(deleteReply.pending, (state) => {
         state.loading.deleting = true;
@@ -628,20 +384,19 @@ const replySlice = createSlice({
       .addCase(deleteReply.fulfilled, (state, action) => {
         state.loading.deleting = false;
         const { replyId, message } = action.payload;
-        
+
         // Remove from cache
         delete state.cache[replyId];
 
-        // Soft delete in all locations (mark as deleted)
-        const markAsDeletedInReplies = (replies) => {
-          for (let reply of replies) {
-            if (reply._id === replyId) {
-              reply.isDeleted = true;
-              reply.content = '[This reply has been deleted]';
+        // Remove from repliesByPost (nested removal)
+        const removeReplyFromList = (replyList, targetId) => {
+          for (let i = 0; i < replyList.length; i++) {
+            if (replyList[i]._id === targetId) {
+              replyList.splice(i, 1);
               return true;
             }
-            if (reply.replies && reply.replies.length > 0) {
-              if (markAsDeletedInReplies(reply.replies)) {
+            if (replyList[i].replies && replyList[i].replies.length > 0) {
+              if (removeReplyFromList(replyList[i].replies, targetId)) {
                 return true;
               }
             }
@@ -649,15 +404,10 @@ const replySlice = createSlice({
           return false;
         };
 
-        Object.values(state.repliesByPost).forEach(replies => {
-          markAsDeletedInReplies(replies);
+        // Remove from all posts' replies
+        Object.keys(state.repliesByPost).forEach(postId => {
+          removeReplyFromList(state.repliesByPost[postId], replyId);
         });
-
-        // Remove from userReplies
-        state.userReplies = state.userReplies.filter(reply => reply._id !== replyId);
-        
-        // Update user replies pagination
-        state.userRepliesPagination.totalReplies -= 1;
 
         state.message = message;
       })
@@ -665,7 +415,7 @@ const replySlice = createSlice({
         state.loading.deleting = false;
         state.error.deleting = action.payload;
       })
-      
+
       // Fetch User Replies
       .addCase(fetchUserReplies.pending, (state) => {
         state.loading.userReplies = true;
@@ -685,7 +435,7 @@ const replySlice = createSlice({
         state.loading.userReplies = false;
         state.error.userReplies = action.payload;
       })
-      
+
       // Fetch Nested Replies
       .addCase(fetchNestedReplies.pending, (state) => {
         state.loading.fetching = true;
@@ -725,8 +475,54 @@ const replySlice = createSlice({
       .addCase(fetchNestedReplies.rejected, (state, action) => {
         state.loading.fetching = false;
         state.error.fetching = action.payload;
+      })
+
+      // Vote Reply
+      .addCase(voteReply.pending, (state) => {
+        state.loading.voting = true;
+        state.error.voting = null;
+      })
+      .addCase(voteReply.fulfilled, (state, action) => {
+        state.loading.voting = false;
+        const { replyId, upvotes, downvotes, voteScore, message } = action.payload;
+
+        // Update in cache
+        if (state.cache[replyId]) {
+          state.cache[replyId].upvotes = upvotes;
+          state.cache[replyId].downvotes = downvotes;
+          state.cache[replyId].voteScore = voteScore;
+        }
+
+        // Update in repliesByPost (nested update)
+        const updateReplyInList = (replyList, targetId) => {
+          for (let i = 0; i < replyList.length; i++) {
+            if (replyList[i]._id === targetId) {
+              replyList[i].upvotes = upvotes;
+              replyList[i].downvotes = downvotes;
+              replyList[i].voteScore = voteScore;
+              return true;
+            }
+            if (replyList[i].replies && replyList[i].replies.length > 0) {
+              if (updateReplyInList(replyList[i].replies, targetId)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        // Update in all posts' replies
+        Object.keys(state.repliesByPost).forEach(postId => {
+          updateReplyInList(state.repliesByPost[postId], replyId);
+        });
+
+        state.message = message;
+      })
+      .addCase(voteReply.rejected, (state, action) => {
+        state.loading.voting = false;
+        state.error.voting = action.payload;
       });
-  },
+  }
 });
 
 export const { 
