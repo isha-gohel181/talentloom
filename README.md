@@ -63,21 +63,4 @@ Talentloom is a full-stack web application designed as a platform for talent dis
 
 ## Environment Variables
 
-For the backend, create a `.env` file in the `backend` directory with the following variables (refer to `.env.example` if available):
-
-- `PORT`
-- `DBNAME`
-- `CONNECTIONSTRING`
-- `CORS_ORIGIN`
-- `ACCESS_TOKEN_SECRET`
-- `ACCESS_TOKEN_EXPIRY`
-- `REFRESH_TOKEN_SECRET`
-- `REFRESH_TOKEN_EXPIRY`
-- `SMTP_HOST`
-- `SMTP_SERVICE`
-- `SMTP_PORT`
-- `SMTP_MAIL`
-- `SMTP_PASSWORD`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
+For the backend, create a .env file in the backend directory with the following variables (refer to .env.example if available):
