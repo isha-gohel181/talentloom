@@ -284,6 +284,10 @@ const userSlice = createSlice({
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.message = action.payload.message;
+        // Save access token to localStorage
+        if (action.payload.accessToken) {
+          localStorage.setItem("accessToken", action.payload.accessToken);
+        }
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
@@ -302,6 +306,10 @@ const userSlice = createSlice({
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.message = action.payload.message;
+        // Save access token to localStorage
+        if (action.payload.accessToken) {
+          localStorage.setItem("accessToken", action.payload.accessToken);
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -318,6 +326,8 @@ const userSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.message = 'Logged out successfully';
+        // Remove access token from localStorage
+        localStorage.removeItem("accessToken");
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = false;
@@ -411,6 +421,10 @@ const userSlice = createSlice({
         state.otp.verified = true;
         state.user = action.payload.user;
         state.message = action.payload.message;
+        // Save access token to localStorage
+        if (action.payload.accessToken) {
+          localStorage.setItem("accessToken", action.payload.accessToken);
+        }
       })
       .addCase(verifyOtp.rejected, (state, action) => {
         state.otp.loading = false;
