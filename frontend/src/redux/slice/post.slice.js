@@ -21,7 +21,7 @@ export const createPost = createAsyncThunk(
 
       const response = await api.post('/api/v1/posts', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // 'Content-Type': 'multipart/form-data', // Let axios set this automatically for FormData
         },
       });
       return response.data;

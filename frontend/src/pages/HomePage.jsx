@@ -73,13 +73,15 @@ const HomePage = () => {
 
   const categories = [
     { value: 'all', label: 'All Categories' },
-    { value: 'general', label: 'General' },
-    { value: 'programming', label: 'Programming' },
-    { value: 'design', label: 'Design' },
-    { value: 'business', label: 'Business' },
-    { value: 'science', label: 'Science' },
-    { value: 'mathematics', label: 'Mathematics' },
-    { value: 'other', label: 'Other' }
+    { value: 'General Programming', label: 'General Programming' },
+    { value: 'Web Development', label: 'Web Development' },
+    { value: 'Mobile Development', label: 'Mobile Development' },
+    { value: 'Data Science', label: 'Data Science' },
+    { value: 'DevOps', label: 'DevOps' },
+    { value: 'Security', label: 'Security' },
+    { value: 'Career Advice', label: 'Career Advice' },
+    { value: 'Tools & Technologies', label: 'Tools & Technologies' },
+    { value: 'Other', label: 'Other' }
   ];
 
   const sortOptions = [

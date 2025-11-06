@@ -6,9 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true, // allows sending cookies (refresh token)
-  headers: {
-    "Content-Type": "application/json",
-  },
+  // Remove default Content-Type to let axios set it automatically based on data type
 });
 
 // 🔄 Request interceptor → Attach access token

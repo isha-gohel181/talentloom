@@ -153,7 +153,7 @@ const CreatePostPage = () => {
       };
 
       const result = await dispatch(createPost(postData)).unwrap();
-      navigate(`/post/${result.post._id}`);
+      navigate('/');
     } catch (error) {
       setErrors({
         submit: error.message || 'Failed to create post'
