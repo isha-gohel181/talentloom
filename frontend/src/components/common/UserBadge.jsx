@@ -33,13 +33,13 @@ const UserBadge = ({
   const getRoleColor = (role) => {
     switch (role?.toLowerCase()) {
       case 'admin':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        return 'bg-destructive/10 text-destructive border border-destructive/20';
       case 'instructor':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-primary/10 text-primary border border-primary/20';
       case 'moderator':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return 'bg-muted text-muted-foreground border border-border';
     }
   };
 
@@ -79,7 +79,7 @@ const UserBadge = ({
       {/* User Info */}
       <div className="flex flex-col">
         <div className="flex items-center space-x-2">
-          <span className={`font-medium text-gray-900 dark:text-gray-100 ${sizeClasses[size].text}`}>
+          <span className={`font-medium text-foreground ${sizeClasses[size].text}`}>
             {user.name || user.username}
           </span>
           {showRole && user.role && user.role !== 'user' && (
@@ -91,7 +91,7 @@ const UserBadge = ({
 
         {/* Reputation and Join Date */}
         {(showReputation || showJoinDate) && (
-          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-2 text-muted-foreground">
             {showReputation && (
               <span className={`${sizeClasses[size].text}`}>
                 {formatReputation(user.reputation || 0)} rep

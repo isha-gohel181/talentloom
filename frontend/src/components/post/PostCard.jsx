@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import VoteButton from '../common/VoteButton';
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, showFullContent = false, showActions = false }) => {
   if (!post) return null;
 
   const {
@@ -16,8 +20,18 @@ const PostCard = ({ post }) => {
     views = 0,
     createdAt,
     isAnswered = false,
-    voteScore = 0
+    voteScore = 0,
+    media
   } = post;
+
+  // Determine user's current vote (only if upvotes/downvotes are populated with user objects)
+  const getUserVote = () => {
+    // This would require user context, for now assume no vote for list view
+    // In detailed view, we can check if user._id is in upvotes/downvotes arrays
+    return null;
+  };
+
+  const userVote = getUserVote();
 
   // Simple time ago calculation
   const getTimeAgo = (dateString) => {
@@ -33,114 +47,116 @@ const PostCard = ({ post }) => {
   };
 
   const timeAgo = getTimeAgo(createdAt);
-  const previewContent = content?.length > 200 ? content.substring(0, 200) + '...' : content;
+  const displayContent = showFullContent ? content : (content?.length > 200 ? content.substring(0, 200) + '...' : content);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow duration-200">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          {author?.avatar?.secure_url ? (
-            <img
-              src={author.avatar.secure_url}
-              alt={author.fullName}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-8 h-8 bg-linear-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {author?.fullName?.charAt(0)?.toUpperCase() || '?'}
-              </span>
+    <Card className="hover:shadow-md transition-shadow duration-200">
+      <CardHeader>
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <Avatar>
+              <AvatarImage src={author?.avatar?.secure_url} alt={author.fullName} />
+              <AvatarFallback>{author?.fullName?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {author?.fullName || 'Anonymous'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {timeAgo}
+              </p>
             </div>
-          )}
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {author?.fullName || 'Anonymous'}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {timeAgo}
-            </p>
+          </div>
+
+          {/* Status badges */}
+          <div className="flex items-center space-x-2">
+            {isAnswered && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                ✓ Answered
+              </Badge>
+            )}
+            {category && category !== 'general' && (
+              <Badge variant="outline">
+                {category}
+              </Badge>
+            )}
           </div>
         </div>
 
-        {/* Status badges */}
-        <div className="flex items-center space-x-2">
-          {isAnswered && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              ✓ Answered
-            </span>
-          )}
-          {category && category !== 'general' && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {category}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Title */}
-      <Link to={`/posts/${_id}`}>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
-          {title}
-        </h3>
-      </Link>
-
-      {/* Content Preview */}
-      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">
-        {previewContent}
-      </p>
-
-      {/* Tags */}
-      {tags && tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-            >
-              #{tag}
-            </span>
-          ))}
-          {tags.length > 3 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              +{tags.length - 3} more
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-4">
-          {/* Votes */}
-          <div className="flex items-center space-x-1">
-            <span className={`text-sm font-medium ${
-              voteScore > 0 ? 'text-green-600 dark:text-green-400' :
-              voteScore < 0 ? 'text-red-600 dark:text-red-400' :
-              'text-gray-600 dark:text-gray-400'
-            }`}>
-              {voteScore}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              votes
-            </span>
-          </div>
-
-          {/* Views */}
-          <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-            <span>{views} views</span>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <Link
-          to={`/posts/${_id}`}
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors"
-        >
-          Read more →
+        {/* Title */}
+        <Link to={`/posts/${_id}`}>
+          <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary transition-colors line-clamp-2">
+            {title}
+          </h3>
         </Link>
-      </div>
-    </div>
+      </CardHeader>
+
+      <CardContent>
+        {/* Content Display */}
+        <p className={`text-muted-foreground text-sm mb-4 ${!showFullContent ? 'line-clamp-3' : ''}`}>
+          {displayContent}
+        </p>
+
+        {/* Media/Image Display */}
+        {media && media.secure_url && (
+          <div className="mb-4">
+            <img
+              src={media.secure_url}
+              alt="Post attachment"
+              className={`w-full rounded-lg border border-gray-200 dark:border-gray-700 ${showFullContent ? 'max-h-none' : 'max-h-64 object-cover'}`}
+            />
+          </div>
+        )}
+
+        {/* Tags */}
+        {tags && tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tags.slice(0, 3).map((tag, index) => (
+              <Badge key={index} variant="secondary">
+                #{tag}
+              </Badge>
+            ))}
+            {tags.length > 3 && (
+              <span className="text-xs text-muted-foreground">
+                +{tags.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter>
+        {/* Footer */}
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center space-x-4">
+            {/* Voting */}
+            <VoteButton
+              itemId={_id}
+              itemType="post"
+              initialUpvotes={Array.isArray(upvotes) ? upvotes.length : upvotes}
+              initialDownvotes={Array.isArray(downvotes) ? downvotes.length : downvotes}
+              userVote={userVote}
+              size="small"
+              orientation="horizontal"
+            />
+
+            {/* Views */}
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <span>{views} views</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <Link
+            to={`/posts/${_id}`}
+            className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+          >
+            Read more →
+          </Link>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 

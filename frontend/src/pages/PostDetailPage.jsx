@@ -6,6 +6,9 @@ import ReplyCard from '../components/reply/ReplyCard';
 import ReplyForm from '../components/common/ReplyForm';
 import Loader, { CardSkeleton } from '../components/common/Loader';
 import { getPostById, acceptReply, getRepliesByPostId } from '../redux/slice/post.slice';
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const PostDetailPage = () => {
   const { postId } = useParams();
@@ -68,7 +71,7 @@ const PostDetailPage = () => {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <h1 className="text-2xl font-bold text-foreground mb-4">
             Post not found
           </h1>
           <Link
@@ -92,12 +95,12 @@ const PostDetailPage = () => {
       <nav className="mb-6">
         <Link
           to="/"
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-sm"
+          className="text-primary hover:text-primary/80 text-sm"
         >
           Home
         </Link>
-        <span className="text-gray-500 dark:text-gray-400 mx-2">/</span>
-        <span className="text-gray-900 dark:text-gray-100 text-sm">
+        <span className="text-muted-foreground mx-2">/</span>
+        <span className="text-foreground text-sm">
           {currentPost.title}
         </span>
       </nav>
@@ -112,37 +115,41 @@ const PostDetailPage = () => {
       </div>
 
       {/* Reply section header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            {currentPost?.replies?.length || 0} Answers
-          </h2>
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              {currentPost?.replies?.length || 0} Answers
+            </CardTitle>
 
-          {/* Sort options */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              <option value="votes">Most votes</option>
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-            </select>
+            {/* Sort options */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">Sort by:</span>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="votes">Most votes</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-
-        {/* Add answer button */}
-        {!showReplyForm && (
-          <button
-            onClick={() => setShowReplyForm(true)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition-colors"
-          >
-            Answer this question
-          </button>
-        )}
-      </div>
+        </CardHeader>
+        <CardContent>
+          {/* Add answer button */}
+          {!showReplyForm && (
+            <Button
+              onClick={() => setShowReplyForm(true)}
+              className="w-full"
+            >
+              Answer this question
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Reply form */}
       {showReplyForm && (
@@ -187,10 +194,10 @@ const PostDetailPage = () => {
           ))
         ) : !acceptedReply && !showReplyForm ? (
           <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               No answers yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               Be the first to answer this question!
             </p>
           </div>

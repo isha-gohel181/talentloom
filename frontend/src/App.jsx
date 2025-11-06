@@ -9,6 +9,9 @@ import PostDetailPage from './pages/PostDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CreatePostPage from './pages/CreatePostPage';
+import UserProfilePage from './pages/UserProfilePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -25,7 +28,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1">
           <Routes>
@@ -50,6 +53,22 @@ function App() {
                 </PublicRoute>
               } 
             />
+            <Route 
+              path="/forgot-password" 
+              element={
+                <PublicRoute>
+                  <ForgotPasswordPage />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/password/reset/:token" 
+              element={
+                <PublicRoute>
+                  <ResetPasswordPage />
+                </PublicRoute>
+              } 
+            />
             
             {/* Protected Routes */}
             <Route 
@@ -57,6 +76,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CreatePostPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <UserProfilePage />
                 </ProtectedRoute>
               } 
             />

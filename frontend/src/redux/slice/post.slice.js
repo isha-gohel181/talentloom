@@ -129,7 +129,7 @@ export const getRepliesByPostId = createAsyncThunk(
   'posts/getRepliesByPostId',
   async (postId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/v1/posts/${postId}/replies`);
+      const response = await api.get(`/api/v1/reply/post/${postId}`);
       return response.data;
     } catch (error) {
       return rejectWithValue(

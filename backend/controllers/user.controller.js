@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs"
 import crypto from "crypto"
 
 import { User } from "../models/user.model.js";
+import { Post } from "../models/post.model.js";
+import { Reply } from "../models/reply.model.js";
 import { destroyOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 import mongoose from "mongoose";
 import { sendEmail } from "../utils/mail.utils.js";
@@ -14,6 +16,7 @@ import { cloudinaryAvatarRefer } from "../utils/constants.utils.js";
 
 // *==================================Email Templates & Link==============================================
 function generateEmailLinkTemplate(Token) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     return `<!DOCTYPE html>
                 <html lang="en">
                     <head>
@@ -24,14 +27,14 @@ function generateEmailLinkTemplate(Token) {
                     <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f7f7f7;">
                         <div>
                             <h3>
-                                <a href="http://localhost:5173/password/reset/${Token}">Click here to reset password</a>
+                                <a href="${frontendUrl}/password/reset/${Token}">Click here to reset password</a>
                             </h3>
                         </div>
                     </body>
                 </html>`;
 }
 
-function generateEmailTemplate(verificationCode, companyName = "talentloom", logoUrl = "") {
+function generateEmailTemplate(verificationCode, companyName = "Talentloom", logoUrl = "") {
     return `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -46,7 +49,7 @@ function generateEmailTemplate(verificationCode, companyName = "talentloom", log
                   <table align="center" cellpadding="0" cellspacing="0" width="600" style="border: 1px solid #e5e5e5; border-radius: 8px; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);">
                       <tr>
                           <td style="padding: 25px; text-align: center; background-color: #f8f8f8; border-bottom: 1px solid #eeeeee;">
-                              ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" width="120" style="margin-bottom: 10px;" />` : `<h2>${companyName}</h2>`}
+                              ${logoUrl ? <img src="${logoUrl}" alt="${companyName}" width="120" style="margin-bottom: 10px;" /> : <h2>${companyName}</h2>}
                           </td>
                       </tr>
                       <tr>
@@ -124,7 +127,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
 
     if (existingUser) {
         const duplicateField = Object.keys(checkFields).find(key => existingUser[key].toString().toLowerCase() === checkFields[key].toString().toLowerCase())
-        return next(new ErrorHandler(`User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!`, 400))
+        return next(new ErrorHandler(User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!, 400))
     }
 
     try {
@@ -135,7 +138,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     } catch (error) {
         if (error instanceof mongoose.Error.ValidationError) {
             Object.values(error.errors).forEach(err => {
-                return next(new ErrorHandler(`Field: ${err.path} → ${err.message}`));
+                return next(new ErrorHandler(Field: ${err.path} → ${err.message}));
             });
         } else return false;
     }
@@ -158,7 +161,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
         cookieToken(user, res)
     } catch (error) {
-        return next(new ErrorHandler(`Something went wrong..details - ${error.message}`, 500))
+        return next(new ErrorHandler(Something went wrong..details - ${error.message}, 500))
     }
 
 })
@@ -200,7 +203,7 @@ const logoutUser = asyncHandler(async (req, res, next) => {
                 message: "User Logged Out Successfully!",
             })
     } catch (error) {
-        return next(new ErrorHandler(`Error logout session :\n${error}`, 400))
+        return next(new ErrorHandler(Error logout session :\n${error}, 400))
     }
 })
 
@@ -229,11 +232,11 @@ const sendOtpToUser = asyncHandler(async (req, res, next) => {
         })
         return res.status(200).json({
             success: true,
-            message: `Code sent successfully to ${email}`
+            message: Code sent successfully to ${email}
         })
 
     } catch (error) {
-        return next(new ErrorHandler(`Unable to send email to ${user.email}\n Error ${error.message || error}`, 400))
+        return next(new ErrorHandler(Unable to send email to ${user.email}\n Error ${error.message || error}, 400))
     }
 })
 
@@ -247,7 +250,7 @@ const verifyOtpForUser = asyncHandler(async (req, res, next) => {
 
 
     if (!otp) {
-        return next(new ErrorHandler(`Please enter OTP sent to you mail: ${email} to verify Email`, 400))
+        return next(new ErrorHandler(Please enter OTP sent to you mail: ${email} to verify Email, 400))
     }
 
     const user = await User.findOne({ email });
@@ -289,7 +292,7 @@ const verifyOtpForUser = asyncHandler(async (req, res, next) => {
         cookie("refreshToken", refreshToken, options).
         json({
             success: true,
-            message: `${email} verified successfully\nUser Created`,
+            message: ${email} verified successfully\nUser Created,
             user: resUser, accessToken, refreshToken
         })
 })
@@ -319,11 +322,11 @@ const sendResetPasswordLinkToUser = asyncHandler(async (req, res, next) => {
         })
         return res.status(200).json({
             success: true,
-            message: `Email sent successfully to ${email}`
+            message: Email sent successfully to ${email}
         })
 
     } catch (error) {
-        return next(new ErrorHandler(`Unable to send email to ${email}\n Error ${error.message || error}`, 400))
+        return next(new ErrorHandler(Unable to send email to ${email}\n Error ${error.message || error}, 400))
         // throw new ErrorHandler("Failed to send verification Code", 500)
     }
 })
@@ -384,7 +387,7 @@ const resetPassword = asyncHandler(async (req, res, next) => {
     return res.status(200).
         json({
             success: true,
-            message: `Password for ${user.fullName} changed!`,
+            message: Password for ${user.fullName} changed!,
         })
 })
 
@@ -453,10 +456,10 @@ const updateUserProfile = asyncHandler(async (req, res, next) => {
         const duplicateField = Object.keys(checkFields).find(key => existingUser[key].toString().toLowerCase() === checkFields[key].toString().toLowerCase())
         return res.status(400).json({
             success: false,
-            message: `User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!`,
+            message: User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!,
             duplicateField
         })
-        // return next(new ErrorHandler(`User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!`, 400))
+        // return next(new ErrorHandler(User already exist with the same ${duplicateField}: "${checkFields[duplicateField]}"\nPlease try unique one!, 400))
     }
 
     try {
@@ -468,16 +471,16 @@ const updateUserProfile = asyncHandler(async (req, res, next) => {
 
                     // 1. Protocol must be HTTPS
                     if (parsed.protocol !== "https:") {
-                        throw new Error(`${platform} link must start with https://`);
+                        throw new Error(${platform} link must start with https://);
                     }
 
                     // 2. Hostname must contain platform domain (except for website)
-                    if (platform !== "website" && !parsed.hostname.includes(`${platform}.com`)) {
-                        throw new Error(`${platform} link must be a valid ${platform}.com domain`);
+                    if (platform !== "website" && !parsed.hostname.includes(${platform}.com)) {
+                        throw new Error(${platform} link must be a valid ${platform}.com domain);
                     }
 
                 } catch (e) {
-                    throw new Error(`${platform} link is invalid. Please enter a valid full https link.`);
+                    throw new Error(${platform} link is invalid. Please enter a valid full https link.);
                 }
             }
         });
@@ -564,7 +567,7 @@ const updateUserAvatar = asyncHandler(async (req, res, next) => {
             })
     } catch (error) {
         const deleteAvatarResponse = await destroyOnCloudinary(newAvatar?.public_id, cloudinaryAvatarRefer);
-        return next(new ErrorHandler(`Unable to update user profle\n ${error}`, 401))
+        return next(new ErrorHandler(Unable to update user profle\n ${error}, 401))
     }
 })
 
@@ -577,6 +580,78 @@ const getLoggedInUserInfo = asyncHandler(async (req, res, next) => {
         user
     })
 })
+
+// *Get User Stats
+const getUserStats = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    
+    // Check if requesting own stats or is instructor
+    if (id !== req.user._id.toString() && req.user.role !== 'instructor') {
+        return next(new ErrorHandler("You can only view your own stats", 403));
+    }
+
+    // Get user basic info
+    const user = await User.findById(id).select("fullName role createdAt");
+    if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+    }
+
+    try {
+        // Get post statistics
+        const totalPosts = await Post.countDocuments({ author: id });
+        const postsWithAcceptedAnswers = await Post.countDocuments({ 
+            author: id, 
+            isAnswered: true 
+        });
+        
+        // Get reply statistics
+        const totalReplies = await Reply.countDocuments({ author: id });
+        const acceptedReplies = await Reply.countDocuments({ 
+            author: id, 
+            isAcceptedAnswer: true 
+        });
+
+        // Get voting statistics with proper aggregation
+        const posts = await Post.find({ author: id }).select('upvotes downvotes');
+        const replies = await Reply.find({ author: id }).select('upvotes downvotes');
+        
+        let upvotesReceived = 0;
+        let downvotesReceived = 0;
+        
+        // Calculate upvotes and downvotes from posts
+        posts.forEach(post => {
+            upvotesReceived += post.upvotes ? post.upvotes.length : 0;
+            downvotesReceived += post.downvotes ? post.downvotes.length : 0;
+        });
+        
+        // Calculate upvotes and downvotes from replies
+        replies.forEach(reply => {
+            upvotesReceived += reply.upvotes ? reply.upvotes.length : 0;
+            downvotesReceived += reply.downvotes ? reply.downvotes.length : 0;
+        });
+        const reputation = upvotesReceived - downvotesReceived;
+
+        const stats = {
+            totalPosts,
+            totalReplies,
+            acceptedAnswers: postsWithAcceptedAnswers,
+            acceptedReplies,
+            upvotesReceived,
+            downvotesReceived,
+            reputation: Math.max(0, reputation), // Ensure reputation doesn't go negative
+            memberSince: user.createdAt,
+            role: user.role
+        };
+
+        res.status(200).json({
+            success: true,
+            stats
+        });
+    } catch (error) {
+        console.error("Error fetching user stats:", error);
+        return next(new ErrorHandler("Failed to fetch user statistics", 500));
+    }
+});
 
 // *Delete User
 const deleteUser = asyncHandler(async (req, res, next) => {
@@ -611,6 +686,7 @@ export {
     sendResetPasswordLinkToUser,
     resetPassword,
     getLoggedInUserInfo,
+    getUserStats,
     changeCurrentPassword,
     updateUserProfile,
     updateUserAvatar,

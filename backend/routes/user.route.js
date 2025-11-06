@@ -12,6 +12,7 @@ import {
     resetPassword,
     changeCurrentPassword,
     getLoggedInUserInfo,
+    getUserStats,
     updateUserProfile,
     deleteUser,
     updateUserAvatar
@@ -40,6 +41,7 @@ router.route("/password/forgot-password/:token").post(resetPassword)
 router.route("/password/update-password").put(verifyJWT, changeCurrentPassword)
 router.route("/me").get(verifyJWT, getLoggedInUserInfo)
 router.route("/dashboard").get(verifyJWT, getLoggedInUserInfo)
+router.route("/:id/stats").get(verifyJWT, getUserStats)
 router.route("/update-profile").put(verifyJWT, updateUserProfile)
 router.route("/update-avatar").put(verifyJWT, upload.single("avatar"), updateUserAvatar)
 router.route("/delete-profile").delete(verifyJWT, deleteUser)

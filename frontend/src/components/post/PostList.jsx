@@ -1,39 +1,38 @@
 import React from 'react';
 import PostCard from './PostCard';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 const PostList = ({ posts, loading, error }) => {
   if (loading) {
     return (
       <div className="space-y-6">
         {[...Array(5)].map((_, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                <div>
-                  <div className="w-24 h-4 bg-gray-300 dark:bg-gray-600 rounded mb-1"></div>
-                  <div className="w-16 h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
+          <Card key={index}>
+            <CardHeader>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="w-8 h-8 rounded-full" />
+                  <div>
+                    <Skeleton className="w-24 h-4 mb-1" />
+                    <Skeleton className="w-16 h-3" />
+                  </div>
                 </div>
+                <Skeleton className="w-16 h-6 rounded-full" />
               </div>
-              <div className="w-16 h-6 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-            </div>
-            <div className="w-3/4 h-6 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-            <div className="space-y-2 mb-4">
-              <div className="w-full h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-              <div className="w-2/3 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            </div>
-            <div className="flex space-x-2 mb-4">
-              <div className="w-12 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-              <div className="w-16 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="w-3/4 h-6 mb-2" />
+              <div className="space-y-2 mb-4">
+                <Skeleton className="w-full h-4" />
+                <Skeleton className="w-2/3 h-4" />
               </div>
-              <div className="w-20 h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
-            </div>
-          </div>
+              <div className="flex space-x-2 mb-4">
+                <Skeleton className="w-12 h-6 rounded" />
+                <Skeleton className="w-16 h-6 rounded" />
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
