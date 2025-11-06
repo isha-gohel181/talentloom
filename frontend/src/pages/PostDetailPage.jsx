@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { MessageCircle } from 'lucide-react';
 import PostCard from '../components/post/PostCard';
 import ReplyCard from '../components/reply/ReplyCard';
 import ReplyForm from '../components/common/ReplyForm';
@@ -117,16 +118,29 @@ const PostDetailPage = () => {
       </div>
 
       {/* Reply section header */}
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>
-              {currentPost?.replies?.length || 0} Answers
-            </CardTitle>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <MessageCircle className="w-5 h-5 text-primary" />
+                <CardTitle className="text-xl">
+                  {currentPost?.replies?.length || 0} {currentPost?.replies?.length === 1 ? 'Answer' : 'Answers'}
+                </CardTitle>
+              </div>
+              {acceptedReply && (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-full">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                    Accepted
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Sort options */}
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">Sort by:</span>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Sort by:</span>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -145,8 +159,10 @@ const PostDetailPage = () => {
           {!showReplyForm && (
             <Button
               onClick={() => setShowReplyForm(true)}
-              className="w-full"
+              className="w-full sm:w-auto"
+              size="lg"
             >
+              <MessageCircle className="w-4 h-4 mr-2" />
               Answer this question
             </Button>
           )}
@@ -167,7 +183,7 @@ const PostDetailPage = () => {
 
       {/* Accepted answer */}
       {acceptedReply && (
-        <div className="mb-6">
+        <div className="mb-8">
           <ReplyCard
             reply={acceptedReply}
             postId={postId}
@@ -196,12 +212,17 @@ const PostDetailPage = () => {
           ))
         ) : !acceptedReply && !showReplyForm ? (
           <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              No answers yet
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Be the first to answer this question!
-            </p>
+            <div className="flex flex-col items-center space-y-4">
+              <MessageCircle className="w-12 h-12 text-muted-foreground/50" />
+              <div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  No answers yet
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Be the first to answer this question and help others learn!
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>

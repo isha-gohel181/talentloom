@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronRight, MessageCircle } from 'lucide-react';
 import VoteButton from '../common/VoteButton';
 import UserBadge from '../common/UserBadge';
 import ReplyForm from '../common/ReplyForm';
@@ -27,6 +28,7 @@ const ReplyCard = ({
   const [editContent, setEditContent] = useState(reply.content);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editError, setEditError] = useState('');
+  const [showNestedReplies, setShowNestedReplies] = useState(true);
 
   const handleReply = () => {
     setShowReplyForm(!showReplyForm);
@@ -101,17 +103,52 @@ const ReplyCard = ({
   const canDelete = user && (user._id === reply.author._id || user.role === 'admin' || user.role === 'moderator');
   const canEdit = user && user._id === reply.author._id;
   const canReply = depth < maxDepth;
+  const hasNestedReplies = reply.replies && reply.replies.length > 0;
+
+  // Color schemes for different nesting levels
+  const getNestingStyles = (depth) => {
+    const colors = [
+      {
+        border: 'border-l-blue-200 dark:border-l-blue-800',
+        bg: 'bg-blue-50/30 dark:bg-blue-950/20',
+        accent: 'text-blue-600 dark:text-blue-400'
+      },
+      {
+        border: 'border-l-green-200 dark:border-l-green-800',
+        bg: 'bg-green-50/30 dark:bg-green-950/20',
+        accent: 'text-green-600 dark:text-green-400'
+      },
+      {
+        border: 'border-l-purple-200 dark:border-l-purple-800',
+        bg: 'bg-purple-50/30 dark:bg-purple-950/20',
+        accent: 'text-purple-600 dark:text-purple-400'
+      }
+    ];
+    return colors[depth % colors.length];
+  };
+
+  const nestingStyles = depth > 0 ? getNestingStyles(depth - 1) : null;
 
   return (
-    <div className={`${depth > 0 ? 'ml-6 pl-4 border-l-2 border-border' : ''} ${className}`}>
-      <Card className="shadow-sm">
+    <div className={`${depth > 0 ? `ml-8 relative` : ''} ${className}`}>
+      {/* Threading line for nested replies */}
+      {depth > 0 && (
+        <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${nestingStyles.border} rounded-full`} />
+      )}
+
+      <Card className={`shadow-sm transition-all duration-200 hover:shadow-md ${
+        depth > 0 ? `${nestingStyles.bg} border-l-4 ${nestingStyles.border}` : ''
+      }`}>
         <CardContent className="p-4">
           {/* Accepted answer indicator */}
           {isAccepted && (
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-green-700 dark:text-green-400 font-medium text-sm">
-                Accepted Answer
-              </span>
+              <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-700 dark:text-green-400 font-medium text-sm">
+                  Accepted Answer
+                </span>
+              </div>
             </div>
           )}
 
@@ -127,7 +164,9 @@ const ReplyCard = ({
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <span>{formatDate(reply.createdAt)}</span>
               {reply.updatedAt !== reply.createdAt && (
-                <span>(edited {formatDate(reply.updatedAt)})</span>
+                <span className={`${nestingStyles?.accent || 'text-muted-foreground'}`}>
+                  (edited {formatDate(reply.updatedAt)})
+                </span>
               )}
             </div>
           </div>
@@ -174,7 +213,7 @@ const ReplyCard = ({
             </div>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-              <div className="text-foreground whitespace-pre-wrap">
+              <div className="text-foreground whitespace-pre-wrap leading-relaxed">
                 {reply.content}
               </div>
             </div>
@@ -198,9 +237,10 @@ const ReplyCard = ({
               {canReply && (
                 <button
                   onClick={handleReply}
-                  className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
                 >
-                  Reply
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Reply</span>
                 </button>
               )}
 
@@ -226,16 +266,34 @@ const ReplyCard = ({
               )}
             </div>
 
-            {/* Share link */}
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/post/${postId}#reply-${reply._id}`);
-                alert('Link copied to clipboard');
-              }}
-              className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
-            >
-              Share
-            </button>
+            {/* Share link and collapse/expand */}
+            <div className="flex items-center space-x-2">
+              {hasNestedReplies && (
+                <button
+                  onClick={() => setShowNestedReplies(!showNestedReplies)}
+                  className="flex items-center space-x-1 text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
+                  title={showNestedReplies ? 'Collapse replies' : 'Expand replies'}
+                >
+                  {showNestedReplies ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {reply.replies.length} {reply.replies.length === 1 ? 'reply' : 'replies'}
+                  </span>
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/post/${postId}#reply-${reply._id}`);
+                  alert('Link copied to clipboard');
+                }}
+                className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
+              >
+                Share
+              </button>
+            </div>
           </div>
 
           {/* Nested reply form */}
@@ -252,8 +310,8 @@ const ReplyCard = ({
           )}
 
           {/* Nested replies */}
-          {reply.replies && reply.replies.length > 0 && (
-            <div className="mt-4 space-y-4">
+          {hasNestedReplies && showNestedReplies && (
+            <div className="mt-6 space-y-4">
               {reply.replies.map((nestedReply) => (
                 <ReplyCard
                   key={nestedReply._id}
@@ -264,6 +322,19 @@ const ReplyCard = ({
                   onReplySuccess={onReplySuccess}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Collapsed replies indicator */}
+          {hasNestedReplies && !showNestedReplies && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowNestedReplies(true)}
+                className="flex items-center space-x-2 text-muted-foreground hover:text-primary text-sm transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+                <span>Show {reply.replies.length} {reply.replies.length === 1 ? 'reply' : 'replies'}</span>
+              </button>
             </div>
           )}
         </CardContent>
