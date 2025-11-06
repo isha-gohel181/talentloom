@@ -52,8 +52,8 @@ const PostDetailPage = () => {
 
   const handleReplySuccess = () => {
     setShowReplyForm(false);
-    // Refresh replies
-    dispatch(getRepliesByPostId(postId));
+    // Refresh the entire post with all replies to show nested structure
+    dispatch(getPostById(postId));
   };
 
   if (postLoading) {

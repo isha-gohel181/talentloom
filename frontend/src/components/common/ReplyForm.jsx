@@ -44,7 +44,7 @@ const ReplyForm = ({
     try {
       const replyData = {
         content: content.trim(),
-        ...(parentReplyId && { parentReplyId })
+        ...(parentReplyId && { parentReply: parentReplyId })
       };
 
       await dispatch(createReply({ postId, replyData })).unwrap();
