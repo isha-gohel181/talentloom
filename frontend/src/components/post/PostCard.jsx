@@ -1,11 +1,19 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import VoteButton from '../common/VoteButton';
+import { deletePost } from '../../redux/slice/post.slice';
 
 const PostCard = ({ post, showFullContent = false, showActions = false }) => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector(state => state.user);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   if (!post) return null;
 
   const {
@@ -33,6 +41,29 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
   };
 
   const userVote = getUserVote();
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await dispatch(deletePost(_id)).unwrap();
+      // Redirect to home page after deletion
+      navigate('/');
+    } catch (error) {
+      alert(error || 'Failed to delete post');
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEdit = () => {
+    navigate(`/post/${_id}/edit`);
+  };
+
+  const isAuthor = user && author && user._id === author._id;
+  const canDelete = isAuthor || (user && (user.role === 'instructor' || user.role === 'admin'));
 
   // Simple time ago calculation
   const getTimeAgo = (dateString) => {
@@ -122,6 +153,32 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
               <span className="text-xs text-muted-foreground">
                 +{tags.length - 3} more
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Edit/Delete Buttons - Only show if user is the author */}
+        {showFullContent && (isAuthor || canDelete) && (
+          <div className="flex items-center space-x-2 mb-4 pt-4 border-t border-border">
+            {isAuthor && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                disabled={isDeleting}
+              >
+                Edit
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
             )}
           </div>
         )}

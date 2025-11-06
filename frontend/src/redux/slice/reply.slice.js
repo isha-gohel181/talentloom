@@ -66,6 +66,21 @@ export const deleteReply = createAsyncThunk(
   }
 );
 
+export const updateReply = createAsyncThunk(
+  'replies/updateReply',
+  async ({ replyId, content }, { rejectWithValue }) => {
+    try {
+      const response = await api.put(`/api/v1/replies/${replyId}`, { content });
+      return { replyId, ...response.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+        'Failed to update reply'
+      );
+    }
+  }
+);
+
 export const fetchUserReplies = createAsyncThunk(
   'replies/fetchUserReplies',
   async ({ userId, page = 1, limit = 10 }, { rejectWithValue }) => {
@@ -416,6 +431,54 @@ const replySlice = createSlice({
         state.error.deleting = action.payload;
       })
 
+      // Update Reply
+      .addCase(updateReply.pending, (state) => {
+        state.loading.updating = true;
+        state.error.updating = null;
+      })
+      .addCase(updateReply.fulfilled, (state, action) => {
+        state.loading.updating = false;
+        const { replyId, reply, message } = action.payload;
+
+        // Update in cache
+        if (state.cache[replyId]) {
+          state.cache[replyId] = { ...state.cache[replyId], ...reply };
+        }
+
+        // Update in repliesByPost (nested update)
+        const updateReplyInList = (replyList, targetId, updatedReply) => {
+          for (let i = 0; i < replyList.length; i++) {
+            if (replyList[i]._id === targetId) {
+              replyList[i] = { ...replyList[i], ...updatedReply };
+              return true;
+            }
+            if (replyList[i].replies && replyList[i].replies.length > 0) {
+              if (updateReplyInList(replyList[i].replies, targetId, updatedReply)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        // Update in all posts' replies
+        Object.keys(state.repliesByPost).forEach(postId => {
+          updateReplyInList(state.repliesByPost[postId], replyId, reply);
+        });
+
+        // Update in userReplies
+        const userReplyIndex = state.userReplies.findIndex(r => r._id === replyId);
+        if (userReplyIndex !== -1) {
+          state.userReplies[userReplyIndex] = { ...state.userReplies[userReplyIndex], ...reply };
+        }
+
+        state.message = message;
+      })
+      .addCase(updateReply.rejected, (state, action) => {
+        state.loading.updating = false;
+        state.error.updating = action.payload;
+      })
+
       // Fetch User Replies
       .addCase(fetchUserReplies.pending, (state) => {
         state.loading.userReplies = true;
@@ -545,9 +608,13 @@ export const selectUserReplies = (state) => state.replies.userReplies;
 export const selectUserRepliesPagination = (state) => state.replies.userRepliesPagination;
 export const selectRepliesLoading = (state) => state.replies.loading.fetching;
 export const selectCreatingReply = (state) => state.replies.loading.creating;
+export const selectUpdatingReply = (state) => state.replies.loading.updating;
+export const selectDeletingReply = (state) => state.replies.loading.deleting;
 export const selectUserRepliesLoading = (state) => state.replies.loading.userReplies;
 export const selectRepliesError = (state) => state.replies.error.fetching;
 export const selectCreatingError = (state) => state.replies.error.creating;
+export const selectUpdatingError = (state) => state.replies.error.updating;
+export const selectDeletingError = (state) => state.replies.error.deleting;
 export const selectUserRepliesError = (state) => state.replies.error.userReplies;
 export const selectReplyMessage = (state) => state.replies.message;
 export const selectReplyById = (replyId) => (state) => state.replies.cache[replyId];

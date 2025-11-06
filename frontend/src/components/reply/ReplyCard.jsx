@@ -5,8 +5,10 @@ import VoteButton from '../common/VoteButton';
 import UserBadge from '../common/UserBadge';
 import ReplyForm from '../common/ReplyForm';
 import { formatDate } from '../../utils/formatDate';
-import { deleteReply } from '../../redux/slice/reply.slice';
+import { deleteReply, updateReply } from '../../redux/slice/reply.slice';
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const ReplyCard = ({
   reply,
@@ -21,6 +23,10 @@ const ReplyCard = ({
   const { user } = useSelector(state => state.user);
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(reply.content);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const handleReply = () => {
     setShowReplyForm(!showReplyForm);
@@ -39,6 +45,9 @@ const ReplyCard = ({
     setIsDeleting(true);
     try {
       await dispatch(deleteReply(reply._id)).unwrap();
+      if (onReplySuccess) {
+        onReplySuccess();
+      }
     } catch (error) {
       alert('Failed to delete reply');
     } finally {
@@ -46,7 +55,51 @@ const ReplyCard = ({
     }
   };
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditContent(reply.content);
+    setEditError('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditContent(reply.content);
+    setEditError('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editContent.trim()) {
+      setEditError('Reply cannot be empty');
+      return;
+    }
+
+    if (editContent.trim() === reply.content.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsUpdating(true);
+    setEditError('');
+
+    try {
+      await dispatch(updateReply({ 
+        replyId: reply._id, 
+        content: editContent.trim() 
+      })).unwrap();
+      
+      setIsEditing(false);
+      if (onReplySuccess) {
+        onReplySuccess();
+      }
+    } catch (error) {
+      setEditError(error || 'Failed to update reply');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const canDelete = user && (user._id === reply.author._id || user.role === 'admin' || user.role === 'moderator');
+  const canEdit = user && user._id === reply.author._id;
   const canReply = depth < maxDepth;
 
   return (
@@ -80,11 +133,52 @@ const ReplyCard = ({
           </div>
 
           {/* Reply content */}
-          <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-            <div className="text-foreground whitespace-pre-wrap">
-              {reply.content}
+          {isEditing ? (
+            <div className="mb-4">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[100px] resize-y"
+                disabled={isUpdating}
+                maxLength={2000}
+              />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-muted-foreground">
+                  {editContent.length}/2000 characters
+                </span>
+              </div>
+              {editError && (
+                <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-destructive text-sm">{editError}</p>
+                </div>
+              )}
+              <div className="flex items-center justify-end space-x-2 mt-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={isUpdating || !editContent.trim()}
+                >
+                  {isUpdating ? 'Saving...' : 'Save'}
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+              <div className="text-foreground whitespace-pre-wrap">
+                {reply.content}
+              </div>
+            </div>
+          )}
 
           {/* Action buttons */}
           <div className="flex items-center justify-between pt-3 border-t border-border">
@@ -111,9 +205,9 @@ const ReplyCard = ({
               )}
 
               {/* Edit button (if author) */}
-              {user && user._id === reply.author._id && (
+              {canEdit && !isEditing && (
                 <button
-                  onClick={() => {/* TODO: Implement edit functionality */}}
+                  onClick={handleEditClick}
                   className="text-muted-foreground hover:text-primary text-sm font-medium transition-colors"
                 >
                   Edit

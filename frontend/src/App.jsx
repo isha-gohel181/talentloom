@@ -9,6 +9,7 @@ import PostDetailPage from './pages/PostDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CreatePostPage from './pages/CreatePostPage';
+import EditPostPage from './pages/EditPostPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -76,6 +77,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CreatePostPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/post/:postId/edit" 
+              element={
+                <ProtectedRoute>
+                  <EditPostPage />
                 </ProtectedRoute>
               } 
             />
