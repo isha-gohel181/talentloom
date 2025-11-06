@@ -45,7 +45,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/admin", adminRouter)
 app.use("/api/v1/posts", postRouter)
-app.use("/api/v1/reply", replyRouter)
+app.use("/api/v1/replies", replyRouter)
 
 app.use(errorMiddleware)
 // *End-Of-Neccessary-Middlewares

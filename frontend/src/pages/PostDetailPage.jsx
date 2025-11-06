@@ -13,8 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const PostDetailPage = () => {
   const { postId } = useParams();
   const dispatch = useDispatch();
-  const { currentPost, loading: postLoading } = useSelector(state => state.posts);
+  const { currentPost, loading } = useSelector(state => state.posts);
   const { user } = useSelector(state => state.user);
+  
+  const postLoading = loading.currentPost;
 
   const [sortBy, setSortBy] = useState('votes'); // 'votes', 'newest', 'oldest'
   const [showReplyForm, setShowReplyForm] = useState(false);

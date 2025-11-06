@@ -75,6 +75,11 @@ const postSchema = new Schema({
     lastActivity: {
         type: Date,
         default: Date.now
+    },
+    // Number of replies/comments
+    replyCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

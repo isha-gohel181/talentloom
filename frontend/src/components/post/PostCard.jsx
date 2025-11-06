@@ -21,6 +21,7 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
     createdAt,
     isAnswered = false,
     voteScore = 0,
+    replyCount = 0,
     media
   } = post;
 
@@ -85,7 +86,7 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
         </div>
 
         {/* Title */}
-        <Link to={`/posts/${_id}`}>
+        <Link to={`/post/${_id}`}>
           <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary transition-colors line-clamp-2">
             {title}
           </h3>
@@ -141,6 +142,17 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
               orientation="horizontal"
             />
 
+            {/* Comments */}
+            <Link
+              to={`/post/${_id}`}
+              className="flex items-center space-x-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span>{replyCount || 0}</span>
+            </Link>
+
             {/* Views */}
             <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <span>{views} views</span>
@@ -149,7 +161,7 @@ const PostCard = ({ post, showFullContent = false, showActions = false }) => {
 
           {/* Actions */}
           <Link
-            to={`/posts/${_id}`}
+            to={`/post/${_id}`}
             className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
           >
             Read more →
