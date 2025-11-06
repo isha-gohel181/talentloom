@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createPost } from '../redux/slice/post.slice';
 import Loader from '../components/common/Loader';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 const CreatePostPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(state => state.user);
-  const { loading } = useSelector(state => state.post);
+  const loading = useSelector(state => state.posts.loading.creating);
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -16,6 +24,8 @@ const CreatePostPage = () => {
     category: '',
     tags: ''
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [tagSuggestions] = useState([
     'javascript', 'react', 'node.js', 'python', 'java', 'html', 'css',
@@ -83,6 +93,50 @@ const CreatePostPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(prev => ({
+        ...prev,
+        image: 'Please select a valid image file (JPEG, PNG, GIF, WebP)'
+      }));
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setErrors(prev => ({
+        ...prev,
+        image: 'Image size must be less than 5MB'
+      }));
+      return;
+    }
+
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    
+    // Clear image error
+    if (errors.image) {
+      setErrors(prev => ({
+        ...prev,
+        image: ''
+      }));
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -94,11 +148,12 @@ const CreatePostPage = () => {
         tags: formData.tags
           .split(',')
           .map(tag => tag.trim().toLowerCase())
-          .filter(tag => tag.length > 0)
+          .filter(tag => tag.length > 0),
+        media: selectedImage // Add the selected image file
       };
 
       const result = await dispatch(createPost(postData)).unwrap();
-      navigate(`/post/${result._id}`);
+      navigate(`/post/${result.post._id}`);
     } catch (error) {
       setErrors({
         submit: error.message || 'Failed to create post'
@@ -130,145 +185,209 @@ const CreatePostPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-          Ask a Question
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Get help from the community by asking a clear, detailed question.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            placeholder="What's your question?"
-            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 ${
-              errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            }`}
-            maxLength={200}
-          />
-          <div className="flex justify-between mt-1">
-            <span className={`text-sm ${errors.title ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              {errors.title || `${formData.title.length}/200 characters`}
-            </span>
-          </div>
-        </div>
-
-        {/* Category */}
-        <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Category <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 ${
-              errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            }`}
-          >
-            <option value="">Select a category</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-          {errors.category && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.category}</p>
-          )}
-        </div>
-
-        {/* Tags */}
-        <div>
-          <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tags
-          </label>
-          <input
-            type="text"
-            id="tags"
-            name="tags"
-            value={formData.tags}
-            onChange={handleInputChange}
-            placeholder="javascript, react, node.js (comma separated)"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
-          />
-          <div className="mt-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Popular tags:</p>
-            <div className="flex flex-wrap gap-2">
-              {tagSuggestions.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => addTagSuggestion(tag)}
-                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {tag}
-                </button>
-              ))}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ask a Question</CardTitle>
+          <CardDescription>Get help from the community by asking a clear, detailed question.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="What's your question?"
+                maxLength={200}
+                className={errors.title ? 'border-red-500' : ''}
+              />
+              <div className="flex justify-between mt-1">
+                <span className={`text-sm ${errors.title ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {errors.title || `${formData.title.length}/200 characters`}
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Content */}
-        <div>
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Question Details <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            id="content"
-            name="content"
-            value={formData.content}
-            onChange={handleInputChange}
-            placeholder="Provide more details about your question. Include what you've tried, expected vs actual results, etc."
-            rows={12}
-            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 resize-y ${
-              errors.content ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            }`}
-            maxLength={50000}
-          />
-          <div className="flex justify-between mt-1">
-            <span className={`text-sm ${errors.content ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              {errors.content || `${formData.content.length}/50000 characters`}
-            </span>
-          </div>
-        </div>
+            {/* Category */}
+            <div className="space-y-2">
+              <Label htmlFor="category">
+                Category <span className="text-red-500">*</span>
+              </Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.category}</p>
+              )}
+            </div>
 
-        {/* Submit error */}
-        {errors.submit && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-red-600 dark:text-red-400 text-sm">{errors.submit}</p>
-          </div>
-        )}
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags</Label>
+              <Input
+                type="text"
+                id="tags"
+                name="tags"
+                value={formData.tags}
+                onChange={handleInputChange}
+                placeholder="javascript, react, node.js (comma separated)"
+              />
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Popular tags:</p>
+                <div className="flex flex-wrap gap-2">
+                  {tagSuggestions.map(tag => (
+                    <Button
+                      key={tag}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addTagSuggestion(tag)}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        {/* Submit button */}
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors flex items-center space-x-2"
-          >
-            {loading && <Loader size="small" type="spinner" />}
-            <span>{loading ? 'Creating...' : 'Post Question'}</span>
-          </button>
-        </div>
-      </form>
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="image">Attach Image (Optional)</Label>
+              <div className="space-y-4">
+                {/* File Input */}
+                <div className="flex items-center gap-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="image"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Choose Image
+                  </Button>
+                  {selectedImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={removeImage}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Image Preview */}
+                {imagePreview && (
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="max-w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* File Info */}
+                {selectedImage && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <p>Selected: {selectedImage.name}</p>
+                    <p>Size: {(selectedImage.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {errors.image && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{errors.image}</p>
+                )}
+
+                {/* Help Text */}
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Supported formats: JPEG, PNG, GIF, WebP. Maximum size: 5MB
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-2">
+              <Label htmlFor="content">
+                Question Details <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="content"
+                name="content"
+                value={formData.content}
+                onChange={handleInputChange}
+                placeholder="Provide more details about your question. Include what you've tried, expected vs actual results, etc."
+                rows={12}
+                maxLength={50000}
+                className={errors.content ? 'border-red-500' : ''}
+              />
+              <div className="flex justify-between mt-1">
+                <span className={`text-sm ${errors.content ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {errors.content || `${formData.content.length}/50000 characters`}
+                </span>
+              </div>
+            </div>
+
+            {/* Submit error */}
+            {errors.submit && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <p className="text-red-600 dark:text-red-400 text-sm">{errors.submit}</p>
+              </div>
+            )}
+
+            {/* Submit button */}
+            <div className="flex justify-end space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+              >
+                {loading && <Loader size="small" type="spinner" />}
+                <span>{loading ? 'Creating...' : 'Post Question'}</span>
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

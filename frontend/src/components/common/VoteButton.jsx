@@ -1,33 +1,36 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { votePost } from '../../redux/slice/post.slice';
 import { voteReply } from '../../redux/slice/reply.slice';
 
 const VoteButton = ({
   itemId,
   itemType = 'post', // 'post' or 'reply'
-  initialVotes = 0,
+  initialUpvotes = 0,
+  initialDownvotes = 0,
   userVote = null, // 1 for upvote, -1 for downvote, null for no vote
   size = 'medium',
-  orientation = 'vertical', // 'vertical' or 'horizontal'
+  orientation = 'horizontal', // 'horizontal' or 'vertical'
   className = ''
 }) => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.user);
   const [isVoting, setIsVoting] = useState(false);
-  const [currentVotes, setCurrentVotes] = useState(initialVotes);
+  const [currentUpvotes, setCurrentUpvotes] = useState(initialUpvotes);
+  const [currentDownvotes, setCurrentDownvotes] = useState(initialDownvotes);
   const [currentUserVote, setCurrentUserVote] = useState(userVote);
 
   const sizeClasses = {
-    small: 'w-6 h-6',
-    medium: 'w-8 h-8',
-    large: 'w-10 h-10'
+    small: 'w-4 h-4',
+    medium: 'w-5 h-5',
+    large: 'w-6 h-6'
   };
 
   const textSizeClasses = {
-    small: 'text-sm',
-    medium: 'text-base',
-    large: 'text-lg'
+    small: 'text-xs',
+    medium: 'text-sm',
+    large: 'text-base'
   };
 
   const handleVote = async (voteType) => {
@@ -45,8 +48,9 @@ const VoteButton = ({
       const newVote = currentUserVote === voteType ? null : voteType; // Toggle vote
 
       // Optimistic update
-      const voteDiff = calculateVoteDiff(currentUserVote, newVote);
-      setCurrentVotes(prev => prev + voteDiff);
+      const { upvotes: newUpvotes, downvotes: newDownvotes } = calculateNewVotes(currentUserVote, newVote, currentUpvotes, currentDownvotes);
+      setCurrentUpvotes(newUpvotes);
+      setCurrentDownvotes(newDownvotes);
       setCurrentUserVote(newVote);
 
       // Dispatch appropriate action
@@ -57,8 +61,9 @@ const VoteButton = ({
       }
     } catch (error) {
       // Revert optimistic update on error
-      const voteDiff = calculateVoteDiff(currentUserVote, userVote);
-      setCurrentVotes(prev => prev - voteDiff);
+      const { upvotes: revertUpvotes, downvotes: revertDownvotes } = calculateNewVotes(currentUserVote, userVote, currentUpvotes, currentDownvotes);
+      setCurrentUpvotes(revertUpvotes);
+      setCurrentDownvotes(revertDownvotes);
       setCurrentUserVote(userVote);
       console.error('Voting failed:', error);
       alert('Failed to vote. Please try again.');
@@ -67,75 +72,96 @@ const VoteButton = ({
     }
   };
 
-  const calculateVoteDiff = (oldVote, newVote) => {
-    if (oldVote === newVote) return 0;
-    if (oldVote === null && newVote !== null) return newVote;
-    if (oldVote !== null && newVote === null) return -oldVote;
-    if (oldVote !== null && newVote !== null) return newVote - oldVote;
-    return 0;
+  const calculateNewVotes = (oldVote, newVote, currentUp, currentDown) => {
+    let upvotes = currentUp;
+    let downvotes = currentDown;
+
+    // Remove old vote
+    if (oldVote === 1) upvotes--;
+    else if (oldVote === -1) downvotes--;
+
+    // Add new vote
+    if (newVote === 1) upvotes++;
+    else if (newVote === -1) downvotes++;
+
+    return { upvotes, downvotes };
   };
 
-  const getVoteColor = (voteType) => {
-    if (currentUserVote === voteType) {
-      return voteType === 1 ? 'text-orange-500' : 'text-blue-500';
+  const getVoteButtonClasses = (voteType) => {
+    const baseClasses = `${sizeClasses[size]} transition-all duration-200 rounded-full p-1`;
+    const isActive = currentUserVote === voteType;
+    const hoverClasses = isVoting
+      ? 'cursor-not-allowed opacity-50'
+      : 'cursor-pointer hover:bg-muted hover:scale-110';
+
+    if (isActive) {
+      return `${baseClasses} ${hoverClasses} text-white`;
     }
-    return 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300';
+
+    return `${baseClasses} ${hoverClasses} text-muted-foreground hover:text-foreground`;
   };
 
-  const getButtonClasses = (voteType) => {
-    const baseClasses = `${sizeClasses[size]} flex items-center justify-center rounded transition-colors duration-200`;
-    const colorClasses = getVoteColor(voteType);
-    return `${baseClasses} ${colorClasses} ${isVoting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'}`;
+  const formatCount = (count) => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
   };
 
-  if (orientation === 'horizontal') {
+  if (orientation === 'vertical') {
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
+      <div className={`flex flex-col items-center space-y-1 ${className}`}>
         <button
           onClick={() => handleVote(1)}
-          className={getButtonClasses(1)}
+          className={getVoteButtonClasses(1)}
           disabled={isVoting}
           title="Upvote"
         >
-          ↑
+          <ThumbsUp className={`${sizeClasses[size]} ${currentUserVote === 1 ? 'fill-current' : ''}`} />
         </button>
-        <span className={`${textSizeClasses[size]} font-semibold text-gray-700 dark:text-gray-300 min-w-8 text-center`}>
-          {currentVotes}
+        <span className={`${textSizeClasses[size]} font-semibold text-foreground`}>
+          {formatCount(currentUpvotes)}
         </span>
         <button
           onClick={() => handleVote(-1)}
-          className={getButtonClasses(-1)}
+          className={getVoteButtonClasses(-1)}
           disabled={isVoting}
           title="Downvote"
         >
-          ↓
+          <ThumbsDown className={`${sizeClasses[size]} ${currentUserVote === -1 ? 'fill-current' : ''}`} />
         </button>
+        <span className={`${textSizeClasses[size]} font-semibold text-foreground`}>
+          {formatCount(currentDownvotes)}
+        </span>
       </div>
     );
   }
 
-  // Vertical orientation (default)
+  // Horizontal orientation (default)
   return (
-    <div className={`flex flex-col items-center space-y-1 ${className}`}>
+    <div className={`flex items-center space-x-3 ${className}`}>
       <button
         onClick={() => handleVote(1)}
-        className={getButtonClasses(1)}
+        className={getVoteButtonClasses(1)}
         disabled={isVoting}
         title="Upvote"
       >
-        ↑
+        <ThumbsUp className={`${sizeClasses[size]} ${currentUserVote === 1 ? 'fill-current' : ''}`} />
       </button>
-      <span className={`${textSizeClasses[size]} font-semibold text-gray-700 dark:text-gray-300 min-w-8 text-center`}>
-        {currentVotes}
+      <span className={`${textSizeClasses[size]} font-semibold text-foreground min-w-[2ch] text-center`}>
+        {formatCount(currentUpvotes)}
       </span>
       <button
         onClick={() => handleVote(-1)}
-        className={getButtonClasses(-1)}
+        className={getVoteButtonClasses(-1)}
         disabled={isVoting}
         title="Downvote"
       >
-        ↓
+        <ThumbsDown className={`${sizeClasses[size]} ${currentUserVote === -1 ? 'fill-current' : ''}`} />
       </button>
+      <span className={`${textSizeClasses[size]} font-semibold text-foreground min-w-[2ch] text-center`}>
+        {formatCount(currentDownvotes)}
+      </span>
     </div>
   );
 };

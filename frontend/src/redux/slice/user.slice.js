@@ -67,7 +67,7 @@ export const updateUserProfile = createAsyncThunk(
   'user/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await api.put('/api/v1/users/profile', userData);
+      const response = await api.put('/api/v1/users/update-profile', userData);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -86,7 +86,7 @@ export const updateUserAvatar = createAsyncThunk(
       const formData = new FormData();
       formData.append('avatar', avatarFile);
       
-      const response = await api.patch('/api/v1/users/avatar', formData, {
+      const response = await api.put('/api/v1/users/update-avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -105,7 +105,7 @@ export const changeUserPassword = createAsyncThunk(
   'user/changePassword',
   async (passwordData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/v1/users/change-password', passwordData);
+      const response = await api.put('/api/v1/users/password/update-password', passwordData);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -120,7 +120,7 @@ export const sendOtp = createAsyncThunk(
   'user/sendOtp',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/v1/users/send-otp');
+      const response = await api.get('/api/v1/users/send-otp');
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -150,7 +150,7 @@ export const sendResetPasswordLink = createAsyncThunk(
   'user/sendResetLink',
   async (email, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/v1/users/forgot-password', { email });
+      const response = await api.post('/api/v1/users/password/forgot-password', { email });
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -165,7 +165,7 @@ export const resetPassword = createAsyncThunk(
   'user/resetPassword',
   async ({ token, passwordData }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/v1/users/reset-password/${token}`, passwordData);
+      const response = await api.post(`/api/v1/users/password/forgot-password/${token}`, passwordData);
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -180,7 +180,7 @@ export const deleteUserAccount = createAsyncThunk(
   'user/deleteAccount',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.delete('/api/v1/users/delete');
+      const response = await api.delete('/api/v1/users/delete-profile');
       return response.data;
     } catch (error) {
       return rejectWithValue(

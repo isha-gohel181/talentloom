@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs"
 import crypto from "crypto"
 
 import { User } from "../models/user.model.js";
+import { Post } from "../models/post.model.js";
+import { Reply } from "../models/reply.model.js";
 import { destroyOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 import mongoose from "mongoose";
 import { sendEmail } from "../utils/mail.utils.js";
@@ -14,6 +16,7 @@ import { cloudinaryAvatarRefer } from "../utils/constants.utils.js";
 
 // *==================================Email Templates & Link==============================================
 function generateEmailLinkTemplate(Token) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     return `<!DOCTYPE html>
                 <html lang="en">
                     <head>
@@ -24,14 +27,14 @@ function generateEmailLinkTemplate(Token) {
                     <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f7f7f7;">
                         <div>
                             <h3>
-                                <a href="http://localhost:5173/password/reset/${Token}">Click here to reset password</a>
+                                <a href="${frontendUrl}/password/reset/${Token}">Click here to reset password</a>
                             </h3>
                         </div>
                     </body>
                 </html>`;
 }
 
-function generateEmailTemplate(verificationCode, companyName = "GNCIPL", logoUrl = "") {
+function generateEmailTemplate(verificationCode, companyName = "Talentloom", logoUrl = "") {
     return `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -578,6 +581,78 @@ const getLoggedInUserInfo = asyncHandler(async (req, res, next) => {
     })
 })
 
+// *Get User Stats
+const getUserStats = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    
+    // Check if requesting own stats or is instructor
+    if (id !== req.user._id.toString() && req.user.role !== 'instructor') {
+        return next(new ErrorHandler("You can only view your own stats", 403));
+    }
+
+    // Get user basic info
+    const user = await User.findById(id).select("fullName role createdAt");
+    if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+    }
+
+    try {
+        // Get post statistics
+        const totalPosts = await Post.countDocuments({ author: id });
+        const postsWithAcceptedAnswers = await Post.countDocuments({ 
+            author: id, 
+            isAnswered: true 
+        });
+        
+        // Get reply statistics
+        const totalReplies = await Reply.countDocuments({ author: id });
+        const acceptedReplies = await Reply.countDocuments({ 
+            author: id, 
+            isAcceptedAnswer: true 
+        });
+
+        // Get voting statistics with proper aggregation
+        const posts = await Post.find({ author: id }).select('upvotes downvotes');
+        const replies = await Reply.find({ author: id }).select('upvotes downvotes');
+        
+        let upvotesReceived = 0;
+        let downvotesReceived = 0;
+        
+        // Calculate upvotes and downvotes from posts
+        posts.forEach(post => {
+            upvotesReceived += post.upvotes ? post.upvotes.length : 0;
+            downvotesReceived += post.downvotes ? post.downvotes.length : 0;
+        });
+        
+        // Calculate upvotes and downvotes from replies
+        replies.forEach(reply => {
+            upvotesReceived += reply.upvotes ? reply.upvotes.length : 0;
+            downvotesReceived += reply.downvotes ? reply.downvotes.length : 0;
+        });
+        const reputation = upvotesReceived - downvotesReceived;
+
+        const stats = {
+            totalPosts,
+            totalReplies,
+            acceptedAnswers: postsWithAcceptedAnswers,
+            acceptedReplies,
+            upvotesReceived,
+            downvotesReceived,
+            reputation: Math.max(0, reputation), // Ensure reputation doesn't go negative
+            memberSince: user.createdAt,
+            role: user.role
+        };
+
+        res.status(200).json({
+            success: true,
+            stats
+        });
+    } catch (error) {
+        console.error("Error fetching user stats:", error);
+        return next(new ErrorHandler("Failed to fetch user statistics", 500));
+    }
+});
+
 // *Delete User
 const deleteUser = asyncHandler(async (req, res, next) => {
     try {
@@ -611,6 +686,7 @@ export {
     sendResetPasswordLinkToUser,
     resetPassword,
     getLoggedInUserInfo,
+    getUserStats,
     changeCurrentPassword,
     updateUserProfile,
     updateUserAvatar,

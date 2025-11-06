@@ -7,28 +7,45 @@ import { cloudinaryPostRefer } from "../utils/constants.utils.js";
 
 // *Create a new post
 const createPost = asyncHandler(async (req, res, next) => {
+    console.log("CreatePost called with body:", req.body);
+    console.log("User from JWT:", req.user ? req.user._id : "No user");
+    
     const { title, content, category, tags } = req.body;
     
     if (!title || !content) {
         return next(new ErrorHandler("Title and content are required", 400));
     }
 
+    if (!req.user || !req.user._id) {
+        console.error("No user found in request");
+        return next(new ErrorHandler("Authentication required", 401));
+    }
+
     let media = null;
     
     // Handle file upload if present
     if (req.file) {
-        const uploadedMedia = await uploadOnCloudinary(
-            req.file.path, 
-            cloudinaryPostRefer, 
-            req.user, 
-            req.file.originalname
-        );
-        
-        if (uploadedMedia) {
-            media = {
-                public_id: uploadedMedia.public_id,
-                secure_url: uploadedMedia.secure_url
-            };
+        console.log("File received:", req.file.originalname, "Size:", req.file.size);
+        try {
+            const uploadedMedia = await uploadOnCloudinary(
+                req.file.path, 
+                cloudinaryPostRefer, 
+                req.user, 
+                req.file.originalname
+            );
+            
+            if (uploadedMedia) {
+                media = {
+                    public_id: uploadedMedia.public_id,
+                    secure_url: uploadedMedia.secure_url
+                };
+                console.log("Media uploaded successfully:", media);
+            } else {
+                console.log("Media upload failed");
+            }
+        } catch (error) {
+            console.error("Cloudinary upload error:", error);
+            return next(new ErrorHandler("Failed to upload image", 500));
         }
     }
 
@@ -37,23 +54,28 @@ const createPost = asyncHandler(async (req, res, next) => {
         (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())).slice(0, 10) 
         : [];
 
-    const post = await Post.create({
-        title,
-        content,
-        author: req.user._id,
-        category: category || "general",
-        tags: processedTags,
-        media
-    });
+    try {
+        const post = await Post.create({
+            title,
+            content,
+            author: req.user._id,
+            category: category || "general",
+            tags: processedTags,
+            media
+        });
 
-    // Populate author details for response
-    await post.populate('author', 'fullName email avatar');
+        // Populate author details for response
+        await post.populate('author', 'fullName email avatar');
 
-    res.status(201).json({
-        success: true,
-        message: "Post created successfully",
-        post
-    });
+        res.status(201).json({
+            success: true,
+            message: "Post created successfully",
+            post
+        });
+    } catch (dbError) {
+        console.error("Database error:", dbError);
+        return next(new ErrorHandler("Failed to create post", 500));
+    }
 });
 
 // *Get all posts with sorting and pagination

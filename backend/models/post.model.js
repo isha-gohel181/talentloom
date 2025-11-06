@@ -24,6 +24,15 @@ const postSchema = new Schema({
         default: "general",
         trim: true
     },
+    // Media attachments (images uploaded to Cloudinary)
+    media: {
+        public_id: {
+            type: String
+        },
+        secure_url: {
+            type: String
+        }
+    },
     // Mark as resolved/answered by instructor
     isAnswered: {
         type: Boolean,
