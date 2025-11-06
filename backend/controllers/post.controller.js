@@ -340,7 +340,7 @@ const markPostAsAnswered = asyncHandler(async (req, res, next) => {
 // *Update post
 const updatePost = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const { title, content, category, tags } = req.body;
+    const { title, content, category, tags, removeMedia } = req.body;
 
     const post = await Post.findById(id);
     if (!post) {
@@ -358,6 +358,35 @@ const updatePost = asyncHandler(async (req, res, next) => {
     if (category) post.category = category;
     if (tags) {
         post.tags = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim()).slice(0, 10);
+    }
+
+    // Handle media update
+    if (req.file) {
+        // Delete old media from Cloudinary if exists
+        if (post.media && post.media.public_id) {
+            await destroyOnCloudinary(post.media.public_id, cloudinaryPostRefer);
+        }
+
+        // Upload new media
+        const uploadedMedia = await uploadOnCloudinary(
+            req.file.path,
+            cloudinaryPostRefer,
+            req.user,
+            req.file.originalname
+        );
+
+        if (uploadedMedia) {
+            post.media = {
+                public_id: uploadedMedia.public_id,
+                secure_url: uploadedMedia.secure_url
+            };
+        }
+    } else if (removeMedia === 'true') {
+        // Remove existing media
+        if (post.media && post.media.public_id) {
+            await destroyOnCloudinary(post.media.public_id, cloudinaryPostRefer);
+        }
+        post.media = null;
     }
 
     await post.save();

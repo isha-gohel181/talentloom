@@ -25,6 +25,9 @@ const EditPostPage = () => {
     tags: ''
   });
   
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [removeExistingMedia, setRemoveExistingMedia] = useState(false);
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,6 +53,11 @@ const EditPostPage = () => {
         category: currentPost.category || 'General Programming',
         tags: Array.isArray(currentPost.tags) ? currentPost.tags.join(', ') : ''
       });
+      
+      // Set existing media preview
+      if (currentPost.media && currentPost.media.secure_url) {
+        setMediaPreview(currentPost.media.secure_url);
+      }
     }
   }, [currentPost, user, navigate]);
 
@@ -67,6 +75,56 @@ const EditPostPage = () => {
       ...prev,
       category: value
     }));
+  };
+
+  const handleMediaChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setFormError('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setFormError('Image size must be less than 5MB');
+      return;
+    }
+
+    setMediaFile(file);
+    setRemoveExistingMedia(false);
+    setFormError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setRemoveExistingMedia(true);
+    // Reset file input
+    const fileInput = document.getElementById('media');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleRestoreMedia = () => {
+    setMediaFile(null);
+    setRemoveExistingMedia(false);
+    if (currentPost?.media?.secure_url) {
+      setMediaPreview(currentPost.media.secure_url);
+    }
+    // Reset file input
+    const fileInput = document.getElementById('media');
+    if (fileInput) fileInput.value = '';
   };
 
   const validateForm = () => {
@@ -108,14 +166,23 @@ const EditPostPage = () => {
     setFormError('');
 
     try {
-      const postData = {
-        title: formData.title.trim(),
-        content: formData.content.trim(),
-        category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : []
-      };
+      const formDataToSend = new FormData();
+      
+      formDataToSend.append('title', formData.title.trim());
+      formDataToSend.append('content', formData.content.trim());
+      formDataToSend.append('category', formData.category);
+      
+      const tagsArray = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+      formDataToSend.append('tags', tagsArray.join(','));
+      
+      // Handle media
+      if (mediaFile) {
+        formDataToSend.append('media', mediaFile);
+      } else if (removeExistingMedia) {
+        formDataToSend.append('removeMedia', 'true');
+      }
 
-      await dispatch(updatePost({ postId, postData })).unwrap();
+      await dispatch(updatePost({ postId, postData: formDataToSend })).unwrap();
       
       // Redirect to post detail page
       navigate(`/post/${postId}`);
@@ -260,6 +327,72 @@ const EditPostPage = () => {
               />
               <p className="text-xs text-muted-foreground">
                 Separate tags with commas. Maximum 10 tags.
+              </p>
+            </div>
+
+            {/* Media Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="media">
+                Image <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              
+              {/* Current/Preview Image */}
+              {mediaPreview && !removeExistingMedia && (
+                <div className="relative">
+                  <img
+                    src={mediaPreview}
+                    alt="Preview"
+                    className="w-full max-h-96 object-cover rounded-lg border border-border"
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveMedia}
+                      disabled={isSubmitting}
+                    >
+                      Remove Image
+                    </Button>
+                    {mediaFile && (
+                      <span className="text-xs text-muted-foreground">
+                        New image selected
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Show restore button if media was removed but post had original media */}
+              {removeExistingMedia && currentPost?.media?.secure_url && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Image will be removed when you update the post.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestoreMedia}
+                    disabled={isSubmitting}
+                  >
+                    Restore Original Image
+                  </Button>
+                </div>
+              )}
+
+              {/* File Input */}
+              <Input
+                id="media"
+                name="media"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleMediaChange}
+                disabled={isSubmitting}
+                className="cursor-pointer"
+              />
+              <p className="text-xs text-muted-foreground">
+                Supported formats: JPEG, PNG, GIF, WebP. Max size: 5MB.
               </p>
             </div>
 
